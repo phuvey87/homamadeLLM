@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shakespeare-Char — HomamadeLLM</title>
+<meta name="description" content="Introducing Shakespeare-Char, an 804,096-parameter language model trained entirely on a laptop CPU by HomamadeLLM.">
+<meta property="og:title" content="Introducing Shakespeare-Char — HomamadeLLM">
+<meta property="og:description" content="804,096 parameters. Zero GPUs. Two minutes of training on a 2015 laptop.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;1,9..144,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f6f1e7;
+    --bg-raised: #fffaf0;
+    --ink: #1d1a16;
+    --ink-soft: #5c554b;
+    --line: #dcd3c2;
+    --accent: #b3391f;
+    --accent-ink: #fff8ee;
+    --code-bg: #1b1815;
+    --code-ink: #efe6d6;
+    --code-dim: #9a8f7d;
+    --train: #2f6f6a;
+    --serif: "Fraunces", "Iowan Old Style", Georgia, serif;
+    --sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14120f;
+      --bg-raised: #1d1a16;
+      --ink: #f1e9da;
+      --ink-soft: #a89e8d;
+      --line: #35302a;
+      --accent: #f0714f;
+      --accent-ink: #1a0f0a;
+      --code-bg: #0c0b09;
+      --code-ink: #efe6d6;
+      --code-dim: #8d8271;
+      --train: #6fc2ba;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14120f;
+    --bg-raised: #1d1a16;
+    --ink: #f1e9da;
+    --ink-soft: #a89e8d;
+    --line: #35302a;
+    --accent: #f0714f;
+    --accent-ink: #1a0f0a;
+    --code-bg: #0c0b09;
+    --code-ink: #efe6d6;
+    --code-dim: #8d8271;
+    --train: #6fc2ba;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration-color: var(--accent); text-underline-offset: 3px; }
+  a:hover { color: var(--accent); }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+  .narrow { max-width: 720px; }
+
+  /* Nav */
+  nav {
+    position: sticky; top: 0; z-index: 10;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 60px; gap: 16px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 600; text-decoration: none; letter-spacing: -0.01em; }
+  .brand svg { width: 26px; height: 26px; flex: none; }
+  .navlinks { display: flex; align-items: center; gap: 22px; font-size: 14.5px; }
+  .navlinks a { text-decoration: none; color: var(--ink-soft); }
+  .navlinks a:hover { color: var(--ink); }
+  .navlinks .hide-sm { display: inline; }
+  #theme {
+    border: 1px solid var(--line); background: transparent; color: var(--ink-soft);
+    border-radius: 999px; width: 34px; height: 34px; cursor: pointer; font-size: 15px; line-height: 1;
+  }
+  #theme:hover { color: var(--ink); border-color: var(--ink-soft); }
+
+  /* Hero */
+  header.hero { padding: 84px 0 56px; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+  .eyebrow::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+  h1 {
+    font-family: var(--serif); font-weight: 400;
+    font-size: clamp(44px, 8vw, 92px); line-height: 1.02; letter-spacing: -0.025em;
+    margin: 22px 0 24px; text-wrap: balance;
+  }
+  h1 em { color: var(--accent); font-style: italic; }
+  .lede { font-size: clamp(18px, 2.2vw, 22px); line-height: 1.55; color: var(--ink-soft); max-width: 660px; margin: 0 0 34px; }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 20px; border-radius: 999px; font-weight: 500; font-size: 15.5px;
+    text-decoration: none; border: 1px solid var(--ink); transition: transform .15s ease;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn.primary { background: var(--ink); color: var(--bg); }
+  .btn.primary:hover { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .btn.ghost:hover { color: var(--ink); background: var(--bg-raised); }
+
+  /* Terminal */
+  .term {
+    margin-top: 56px; background: var(--code-bg); color: var(--code-ink);
+    border-radius: 14px; overflow: hidden; border: 1px solid var(--line);
+    box-shadow: 0 30px 60px -30px rgba(0,0,0,.45);
+  }
+  .term-bar { display: flex; align-items: center; gap: 7px; padding: 12px 16px; border-bottom: 1px solid #2b2722; font-family: var(--mono); font-size: 12.5px; color: var(--code-dim); }
+  .term-bar i { width: 11px; height: 11px; border-radius: 50%; background: #3a352f; }
+  .term-bar span { margin-left: 10px; }
+  .term pre { margin: 0; padding: 22px 24px 26px; font-family: var(--mono); font-size: 14.5px; line-height: 1.6; white-space: pre-wrap; min-height: 330px; }
+  .term .prompt { color: var(--accent); }
+  .caret { display: inline-block; width: 8px; height: 1.05em; background: var(--code-ink); vertical-align: text-bottom; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .term-note { font-size: 13.5px; color: var(--ink-soft); margin: 12px 4px 0; }
+
+  /* Stats */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin: 72px 0 0; }
+  .stat { padding: 30px 22px; border-left: 1px solid var(--line); }
+  .stat:first-child { border-left: 0; padding-left: 0; }
+  .stat b { display: block; font-family: var(--serif); font-weight: 400; font-size: clamp(34px, 4.6vw, 52px); line-height: 1.05; letter-spacing: -0.02em; }
+  .stat span { display: block; margin-top: 8px; font-size: 14px; color: var(--ink-soft); line-height: 1.45; }
+
+  /* Sections */
+  section { padding: 92px 0 0; }
+  .kicker { font-size: 13px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); margin: 0 0 12px; }
+  h2 { font-family: var(--serif); font-weight: 400; font-size: clamp(32px, 4.6vw, 48px); line-height: 1.1; letter-spacing: -0.02em; margin: 0 0 22px; text-wrap: balance; }
+  h3 { font-size: 18px; font-weight: 600; margin: 0 0 8px; letter-spacing: -0.01em; }
+  p { margin: 0 0 18px; }
+  .soft { color: var(--ink-soft); }
+
+  .pillars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 40px; }
+  .card { background: var(--bg-raised); border: 1px solid var(--line); border-radius: 14px; padding: 26px; }
+  .card p { margin: 0; color: var(--ink-soft); font-size: 15.5px; }
+  .card .num { font-family: var(--serif); font-style: italic; color: var(--accent); font-size: 22px; margin-bottom: 14px; display: block; }
+
+  /* Chart */
+  .chart { background: var(--bg-raised); border: 1px solid var(--line); border-radius: 14px; padding: 26px 26px 18px; margin-top: 36px; }
+  .chart svg { width: 100%; height: auto; display: block; }
+  .chart text { font-family: var(--mono); font-size: 11px; fill: var(--ink-soft); }
+  .legend { display: flex; flex-wrap: wrap; gap: 20px; font-size: 13.5px; color: var(--ink-soft); margin-bottom: 10px; }
+  .legend i { display: inline-block; width: 18px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 8px; }
+
+  /* Steps */
+  .steps { list-style: none; margin: 44px 0 0; padding: 0; counter-reset: step; }
+  .steps > li { counter-increment: step; display: grid; grid-template-columns: 76px 1fr; gap: 8px 24px; padding: 34px 0; border-top: 1px solid var(--line); }
+  .steps > li::before { content: counter(step, decimal-leading-zero); font-family: var(--serif); font-style: italic; font-size: 34px; line-height: 1; color: var(--accent); }
+  .steps > li > div { min-width: 0; }
+  .steps h3 { font-family: var(--serif); font-weight: 400; font-size: 26px; letter-spacing: -0.015em; margin-bottom: 10px; }
+  .steps p { color: var(--ink-soft); max-width: 700px; }
+  .steps p:last-child { margin-bottom: 0; }
+
+  /* Code */
+  .code { position: relative; background: var(--code-bg); color: var(--code-ink); border-radius: 12px; margin: 16px 0 22px; border: 1px solid var(--line); }
+  .code pre { margin: 0; padding: 18px 20px; overflow-x: auto; font-family: var(--mono); font-size: 13.5px; line-height: 1.65; }
+  .code .c { color: var(--code-dim); }
+  .copy { position: absolute; top: 9px; right: 9px; font: 500 12px var(--sans); color: var(--code-dim); background: #2a2621; border: 1px solid #3a352f; border-radius: 7px; padding: 5px 10px; cursor: pointer; }
+  .copy:hover { color: var(--code-ink); }
+  code { font-family: var(--mono); font-size: 0.88em; background: color-mix(in srgb, var(--ink) 8%, transparent); padding: 2px 6px; border-radius: 5px; }
+  .code code { background: none; padding: 0; font-size: inherit; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 15.5px; margin-top: 8px; }
+  th, td { text-align: left; padding: 13px 0; border-bottom: 1px solid var(--line); }
+  th { font-weight: 500; color: var(--ink-soft); width: 46%; }
+  td { font-family: var(--mono); font-size: 14px; }
+
+  .limits { background: var(--bg-raised); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 14px; padding: 30px 32px; margin-top: 36px; }
+  .limits ul { margin: 0; padding-left: 20px; color: var(--ink-soft); }
+  .limits li { margin-bottom: 10px; }
+  .limits li:last-child { margin-bottom: 0; }
+
+  .closing { text-align: center; padding: 110px 0 100px; }
+  .closing h2 { font-size: clamp(36px, 6vw, 64px); max-width: 800px; margin: 0 auto 30px; }
+  .closing .cta { justify-content: center; }
+
+  footer { border-top: 1px solid var(--line); padding: 34px 0 48px; font-size: 14px; color: var(--ink-soft); }
+  footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 14px 30px; }
+  footer p { margin: 0; max-width: 620px; }
+
+  @media (max-width: 800px) {
+    body { font-size: 16px; }
+    .wrap { padding: 0 16px; }
+    header.hero { padding: 54px 0 40px; }
+    .navlinks .hide-sm { display: none; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .stat { padding: 22px 16px; }
+    .stat:nth-child(odd) { border-left: 0; padding-left: 0; }
+    .stat:nth-child(n+3) { border-top: 1px solid var(--line); }
+    .pillars { grid-template-columns: 1fr; }
+    .steps > li { grid-template-columns: 1fr; padding: 28px 0; }
+    section { padding-top: 68px; }
+    .term pre { font-size: 13px; padding: 18px 16px 22px; min-height: 380px; }
+    .limits { padding: 24px 22px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .caret { animation: none; }
+    .btn { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#top" aria-label="HomamadeLLM home">
+      <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+        <rect x="8" y="8" width="16" height="16" rx="3" stroke="currentColor" stroke-width="2"/>
+        <rect x="13" y="13" width="6" height="6" rx="1" fill="var(--accent)"/>
+        <path d="M12 3v5M16 3v5M20 3v5M12 24v5M16 24v5M20 24v5M3 12h5M3 16h5M3 20h5M24 12h5M24 16h5M24 20h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      HomamadeLLM
+    </a>
+    <div class="navlinks">
+      <a class="hide-sm" href="#model">Model</a>
+      <a class="hide-sm" href="#quickstart">Quickstart</a>
+      <a class="hide-sm" href="#how">How we built it</a>
+      <a href="https://huggingface.co/phuvey/shakespeare-char-nanogpt">Hugging Face ↗</a>
+      <button id="theme" type="button" aria-label="Toggle light and dark theme">◐</button>
+    </div>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <span class="eyebrow">Model release · November 2026</span>
+    <h1>Introducing <em>Shakespeare&#8209;Char</em></h1>
+    <p class="lede">
+      Our most capable model yet, and also our first. 804,096 parameters of
+      character-level Elizabethan drama, trained from scratch in about two minutes
+      on a laptop CPU. No GPUs were rented, borrowed, or harmed.
+    </p>
+    <div class="cta">
+      <a class="btn primary" href="https://huggingface.co/phuvey/shakespeare-char-nanogpt">Download on Hugging Face ↗</a>
+      <a class="btn ghost" href="#quickstart">Run it in 3 steps</a>
+    </div>
+
+    <div class="term" aria-label="Sample of text generated by the model">
+      <div class="term-bar"><i></i><i></i><i></i><span>shakespeare-char · temperature 0.8 · top-k 40</span></div>
+      <pre id="typed"><span class="prompt">ROMEO:</span><span id="out"></span><span class="caret" aria-hidden="true"></span></pre>
+    </div>
+    <p class="term-note">Real, unedited model output, replayed at the speed it was generated: about 340 characters per second on a 2015 dual-core laptop.</p>
+
+    <div class="stats">
+      <div class="stat"><b>804,096</b><span>parameters. Every one of them hand-warmed by a CPU fan.</span></div>
+      <div class="stat"><b>0</b><span>GPUs used for training, evaluation, or inference.</span></div>
+      <div class="stat"><b>~2 min</b><span>of training on an Intel Core i5-6200U.</span></div>
+      <div class="stat"><b>3.2 MB</b><span>of weights. Smaller than most photos of a GPU.</span></div>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<section id="model">
+  <div class="wrap">
+    <p class="kicker">The model</p>
+    <h2 class="narrow">A new frontier in doing more with much, much less</h2>
+    <div class="narrow">
+      <p>
+        HomamadeLLM is an AI lab with a simple constraint: we do not have GPUs. Rather
+        than treat this as a problem, we treat it as a research agenda. Every model we
+        release is trained end to end on consumer CPUs, the kind already sitting in a
+        backpack.
+      </p>
+      <p>
+        Shakespeare-Char is the first result of that program. It is a decoder-only
+        transformer that reads text one character at a time and predicts the next one.
+        After 2,000 training steps it has taught itself, from nothing, that plays have
+        speaker names in capitals, that lines break like verse, and that English words
+        are mostly made of English-looking syllables.
+      </p>
+    </div>
+
+    <div class="pillars">
+      <div class="card">
+        <span class="num">i.</span>
+        <h3>CPU-native</h3>
+        <p>Trained on two cores and four threads of a 2015 laptop processor. Inference runs anywhere PyTorch does.</p>
+      </div>
+      <div class="card">
+        <span class="num">ii.</span>
+        <h3>Fully reproducible</h3>
+        <p>Public-domain data, an MIT-licensed codebase, and one command. You can retrain it during a coffee break.</p>
+      </div>
+      <div class="card">
+        <span class="num">iii.</span>
+        <h3>Small enough to understand</h3>
+        <p>Four layers, four attention heads, a 65-character vocabulary. The whole model fits in your head and in an email attachment.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="results">
+  <div class="wrap">
+    <p class="kicker">Evaluation</p>
+    <h2 class="narrow">From random noise to almost-Shakespeare</h2>
+    <p class="narrow soft">
+      Training starts at a loss of 4.17, which is exactly what you get by guessing
+      uniformly among 65 characters. It ends at 1.89 on held-out text the model never
+      saw. Train and validation stay close together, so the model is learning patterns
+      rather than memorising the plays.
+    </p>
+    <div class="chart">
+      <div class="legend">
+        <span><i style="background:var(--accent)"></i>Validation loss</span>
+        <span><i style="background:var(--train)"></i>Training loss</span>
+      </div>
+      <svg viewBox="0 0 640 290" role="img" aria-label="Line chart of training and validation loss over 2,000 steps. Both fall from 4.17 to 1.76 (training) and 1.89 (validation).">
+        <g stroke="var(--line)" stroke-width="1">
+          <line x1="50" y1="58.3" x2="610" y2="58.3"/>
+          <line x1="50" y1="135" x2="610" y2="135"/>
+          <line x1="50" y1="211.7" x2="610" y2="211.7"/>
+          <line x1="50" y1="250" x2="610" y2="250"/>
+        </g>
+        <text x="40" y="62" text-anchor="end">4.0</text>
+        <text x="40" y="139" text-anchor="end">3.0</text>
+        <text x="40" y="215" text-anchor="end">2.0</text>
+        <text x="50" y="270" text-anchor="middle">0</text>
+        <text x="190" y="270" text-anchor="middle">500</text>
+        <text x="330" y="270" text-anchor="middle">1000</text>
+        <text x="470" y="270" text-anchor="middle">1500</text>
+        <text x="610" y="270" text-anchor="end">2000 steps</text>
+        <polyline fill="none" stroke="var(--train)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"
+          points="50,45.5 120,178.8 190,190.7 260,201.4 330,213.9 400,221.2 470,222.7 540,228.6 610,229.7"/>
+        <polyline fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"
+          points="50,45.7 120,177.6 190,187.6 260,197.1 330,207.6 400,211.0 470,217.6 540,219.9 610,220.4"/>
+        <circle cx="610" cy="220.4" r="4" fill="var(--accent)"/>
+        <circle cx="610" cy="229.7" r="4" fill="var(--train)"/>
+        <text x="604" y="208" text-anchor="end" style="fill:var(--ink)">val 1.89</text>
+        <text x="604" y="246" text-anchor="end" style="fill:var(--ink)">train 1.76</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<section id="quickstart">
+  <div class="wrap">
+    <p class="kicker">Quickstart</p>
+    <h2 class="narrow">Run it in three steps</h2>
+    <p class="narrow soft">
+      You need Python 3.9 or newer. No GPU, no account, no API key. The weights are
+      published at
+      <a href="https://huggingface.co/phuvey/shakespeare-char-nanogpt">huggingface.co/phuvey/shakespeare-char-nanogpt</a>.
+    </p>
+
+    <ol class="steps">
+      <li>
+        <div>
+          <h3>Install the dependencies</h3>
+          <p>PyTorch runs the model, <code>safetensors</code> reads the weights, and <code>huggingface_hub</code> provides the <code>hf</code> download command.</p>
+          <div class="code"><button class="copy" type="button">Copy</button><pre><code>pip install torch safetensors huggingface_hub</code></pre></div>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>Download the model</h3>
+          <p>This fetches a few small files, including the weights, the config, the character vocabulary, and the model definition.</p>
+          <div class="code"><button class="copy" type="button">Copy</button><pre><code>hf download phuvey/shakespeare-char-nanogpt --local-dir shakespeare-char
+cd shakespeare-char</code></pre></div>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>Generate text</h3>
+          <p>Save this as <code>generate.py</code> inside the downloaded folder and run <code>python generate.py</code>.</p>
+          <div class="code"><button class="copy" type="button">Copy</button><pre><code>import json, pickle, torch
+from safetensors.torch import load_file
+from model import GPT, GPTConfig
+
+<span class="c"># Build the architecture from the config, then load the weights.</span>
+<span class="c"># strict=False: the output layer shares its weights with the embedding,</span>
+<span class="c"># so it is stored only once in the file.</span>
+model = GPT(GPTConfig(**json.load(open("config.json"))))
+model.load_state_dict(load_file("model.safetensors"), strict=False)
+model.eval()
+
+<span class="c"># The tokenizer is just two lookup tables: character to id and back.</span>
+meta = pickle.load(open("meta.pkl", "rb"))
+stoi, itos = meta["stoi"], meta["itos"]
+
+prompt = "ROMEO:"
+x = torch.tensor([[stoi[c] for c in prompt]])
+y = model.generate(x, max_new_tokens=400, temperature=0.8, top_k=40)
+print("".join(itos[i] for i in y[0].tolist()))</code></pre></div>
+          <p>
+            Things to try: lower <code>temperature</code> to 0.5 for safer, more repetitive text,
+            raise it to 1.2 for chaos. Change the prompt to any speaker name. The prompt can only
+            contain the 65 characters the model knows: English letters, basic punctuation, spaces
+            and newlines.
+          </p>
+        </div>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <p class="kicker">How we built it</p>
+    <h2 class="narrow">Six steps, one laptop</h2>
+    <p class="narrow soft">
+      The full pipeline, from raw text to a published model. Training uses
+      <a href="https://github.com/karpathy/nanoGPT">nanoGPT</a> by Andrej Karpathy,
+      unmodified.
+    </p>
+
+    <ol class="steps">
+      <li>
+        <div>
+          <h3>Collect the data</h3>
+          <p>
+            The corpus is tiny-shakespeare: 1,115,394 characters of Shakespeare's plays in a
+            single text file, all in the public domain. The first 90% is used for training
+            (1,003,854 characters) and the last 10% is held out for validation (111,540).
+          </p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>Tokenize, one character at a time</h3>
+          <p>
+            A language model works on numbers, not text. We use the simplest possible scheme:
+            every distinct character in the corpus gets an integer id. There are 65 of them,
+            so the vocabulary size is 65. No subwords, no byte-pair encoding.
+          </p>
+          <div class="code"><button class="copy" type="button">Copy</button><pre><code>python data/shakespeare_char/prepare.py</code></pre></div>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>Choose an architecture a CPU can afford</h3>
+          <p>
+            A GPT-style decoder-only transformer, scaled down until it trains comfortably
+            without a GPU. The model sees the previous 64 characters and outputs a probability
+            for each of the 65 possible next ones.
+          </p>
+          <table>
+            <tr><th>Layers</th><td>4</td></tr>
+            <tr><th>Attention heads</th><td>4</td></tr>
+            <tr><th>Embedding size</th><td>128</td></tr>
+            <tr><th>Context length</th><td>64 characters</td></tr>
+            <tr><th>Vocabulary</th><td>65 characters</td></tr>
+            <tr><th>Parameters</th><td>804,096</td></tr>
+          </table>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>Train on the CPU</h3>
+          <p>
+            Each step, the model reads 12 random excerpts of 64 characters, predicts every
+            next character, and is scored with cross-entropy loss. The AdamW optimizer then
+            nudges all 804,096 weights to do slightly better. Repeat 2,000 times: about 1.5
+            million characters seen in total, at roughly 55 milliseconds per step.
+          </p>
+          <div class="code"><button class="copy" type="button">Copy</button><pre><code>python train.py config/train_shakespeare_char.py --device=cpu --compile=False \
+  --eval_iters=20 --block_size=64 --batch_size=12 \
+  --n_layer=4 --n_head=4 --n_embd=128 \
+  --max_iters=2000 --lr_decay_iters=2000 --dropout=0.0</code></pre></div>
+          <p>Hardware: Intel Core i5-6200U at 2.3 GHz, 7.5 GB of RAM, PyTorch CPU build.</p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>Export clean weights</h3>
+          <p>
+            The training checkpoint also contains the optimizer state and is stored as a Python
+            pickle, a format that can execute code when loaded. For release we keep only the
+            model weights and save them as <code>safetensors</code>, which is plain data. The
+            result is a 3.2 MB file plus a small <code>config.json</code>.
+          </p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h3>Publish</h3>
+          <p>
+            Weights, config, vocabulary and model code are uploaded to the Hugging Face Hub
+            under the MIT license.
+          </p>
+          <div class="code"><button class="copy" type="button">Copy</button><pre><code>hf upload phuvey/shakespeare-char-nanogpt hf-export .</code></pre></div>
+        </div>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section id="limits">
+  <div class="wrap">
+    <p class="kicker">Responsible release</p>
+    <h2 class="narrow">What it cannot do</h2>
+    <p class="narrow soft">We believe in being direct about limitations. There are several.</p>
+    <div class="limits">
+      <ul>
+        <li><strong>It does not make sense.</strong> The output has the shape of Shakespeare (speaker names, verse, archaic rhythm) but many words are invented and no sentence means anything.</li>
+        <li><strong>It is not a chatbot.</strong> It continues text. It does not answer questions, follow instructions, or know what a question is.</li>
+        <li><strong>It remembers 64 characters.</strong> Roughly one line of verse. Anything earlier is gone.</li>
+        <li><strong>It knows 65 characters.</strong> A prompt containing anything else, such as digits or accented letters, raises an error.</li>
+        <li><strong>It has one training run behind it.</strong> No hyperparameter search, no benchmark suite, one validation number.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="closing">
+  <div class="wrap">
+    <h2>The future of AI is compute-constrained. <em style="color:var(--accent)">We got there first.</em></h2>
+    <div class="cta">
+      <a class="btn primary" href="https://huggingface.co/phuvey/shakespeare-char-nanogpt">Get the model ↗</a>
+      <a class="btn ghost" href="#how">Read how it was made</a>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>© 2026 HomamadeLLM. An independent, GPU-free AI lab. Model released under the MIT license.</p>
+    <p>
+      Built with <a href="https://github.com/karpathy/nanoGPT">nanoGPT</a> by Andrej Karpathy (MIT)
+      on the tiny-shakespeare dataset. Weights hosted on
+      <a href="https://huggingface.co/phuvey/shakespeare-char-nanogpt">Hugging Face</a>.
+    </p>
+  </div>
+</footer>
+
+<script>
+  // Theme toggle (remembers the choice when storage is available)
+  (function () {
+    var root = document.documentElement;
+    try { var saved = localStorage.getItem("theme"); if (saved) root.dataset.theme = saved; } catch (e) {}
+    document.getElementById("theme").addEventListener("click", function () {
+      var dark = root.dataset.theme
+        ? root.dataset.theme === "dark"
+        : window.matchMedia("(prefers-color-scheme: dark)").matches;
+      root.dataset.theme = dark ? "light" : "dark";
+      try { localStorage.setItem("theme", root.dataset.theme); } catch (e) {}
+    });
+  })();
+
+  // Replay the real sample at roughly the measured generation speed
+  (function () {
+    var sample = "\nO hed leaw I will to my make on Laman,\nLo, the lord, as the ars blate though wast confunt\nThis thing for it my send,ing bows farse dowed,\nNor have will would and murs's consel.\n\nMEOF:\nSir, should and then thee.\n\nGRICHARD one, enceling:\nOr house\nYour to do the all in despery I parve porge,\nAnd shall not aple bralance the my plife friend.";
+    var out = document.getElementById("out");
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { out.textContent = sample; return; }
+    var i = 0, perTick = 6, tick = 17; // ~340 characters per second
+    function run() {
+      i = Math.min(sample.length, i + perTick);
+      out.textContent = sample.slice(0, i);
+      if (i < sample.length) setTimeout(run, tick);
+      else setTimeout(function () { i = 0; out.textContent = ""; run(); }, 6000);
+    }
+    setTimeout(run, 700);
+  })();
+
+  // Copy buttons
+  document.querySelectorAll(".copy").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var text = btn.parentElement.querySelector("code").innerText;
+      navigator.clipboard.writeText(text).then(function () {
+        btn.textContent = "Copied";
+        setTimeout(function () { btn.textContent = "Copy"; }, 1500);
+      });
+    });
+  });
+</script>
+</body>
+</html>
